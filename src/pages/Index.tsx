@@ -118,23 +118,23 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white">
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold mb-2 bg-gradient-to-r from-emerald-400 to-green-500 bg-clip-text text-transparent">
+      <div className="container mx-auto px-4 py-4 sm:py-8">
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-3xl sm:text-5xl font-bold mb-2 bg-gradient-to-r from-emerald-400 to-green-500 bg-clip-text text-transparent">
             MINESWEEPER
           </h1>
-          <p className="text-gray-400 text-lg">Find the safe tiles, avoid the mines, cash out before it's too late</p>
+          <p className="text-gray-400 text-sm sm:text-lg">Find the safe tiles, avoid the mines, cash out before it's too late</p>
         </div>
 
-        <div className="max-w-4xl mx-auto grid lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
+        <div className="max-w-4xl mx-auto space-y-6 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-8">
+          <div className="lg:col-span-2 order-2 lg:order-1">
             <GameBoard 
               gameData={gameData} 
               onTileClick={revealTile}
             />
           </div>
           
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6 order-1 lg:order-2">
             <GameStats gameData={gameData} />
             <GameControls 
               gameData={gameData}

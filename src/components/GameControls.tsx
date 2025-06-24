@@ -25,13 +25,13 @@ const GameControls = ({ gameData, onStartGame, onCashOut, onReset }: GameControl
   const canCashOut = gameData.gameState === 'playing' && gameData.revealedCount > 0;
 
   return (
-    <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
-      <h3 className="text-xl font-bold mb-4 text-center">Game Controls</h3>
+    <div className="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 shadow-xl">
+      <h3 className="text-lg sm:text-xl font-bold mb-4 text-center">Game Controls</h3>
       
       {gameData.gameState === 'idle' && (
         <div className="space-y-4">
           <div>
-            <Label htmlFor="bet-amount" className="text-gray-300">Bet Amount</Label>
+            <Label htmlFor="bet-amount" className="text-gray-300 text-sm sm:text-base">Bet Amount</Label>
             <Input
               id="bet-amount"
               type="number"
@@ -39,14 +39,14 @@ const GameControls = ({ gameData, onStartGame, onCashOut, onReset }: GameControl
               onChange={(e) => setBetAmount(Number(e.target.value))}
               min={1}
               max={gameData.balance}
-              className="bg-slate-700 border-slate-600 text-white mt-1"
+              className="bg-slate-700 border-slate-600 text-white mt-1 h-12 sm:h-10 text-base"
             />
           </div>
           
           <div>
-            <Label htmlFor="mine-count" className="text-gray-300">Number of Mines</Label>
+            <Label htmlFor="mine-count" className="text-gray-300 text-sm sm:text-base">Number of Mines</Label>
             <Select value={mineCount.toString()} onValueChange={(value) => setMineCount(Number(value))}>
-              <SelectTrigger className="bg-slate-700 border-slate-600 text-white mt-1">
+              <SelectTrigger className="bg-slate-700 border-slate-600 text-white mt-1 h-12 sm:h-10">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-slate-700 border-slate-600">
@@ -60,7 +60,7 @@ const GameControls = ({ gameData, onStartGame, onCashOut, onReset }: GameControl
           
           <Button 
             onClick={handleStartGame}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3"
+            className="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold py-4 sm:py-3 text-base sm:text-sm"
             disabled={betAmount <= 0 || betAmount > gameData.balance}
           >
             Start Game
@@ -70,15 +70,15 @@ const GameControls = ({ gameData, onStartGame, onCashOut, onReset }: GameControl
       
       {gameData.gameState === 'playing' && (
         <div className="space-y-4">
-          <div className="text-center p-4 bg-yellow-900/30 rounded-lg border border-yellow-700">
+          <div className="text-center p-3 sm:p-4 bg-yellow-900/30 rounded-lg border border-yellow-700">
             <p className="text-yellow-300 text-sm mb-2">Game in progress...</p>
-            <p className="text-white">Click tiles to reveal them</p>
+            <p className="text-white text-sm sm:text-base">Click tiles to reveal them</p>
           </div>
           
           <Button 
             onClick={onCashOut}
             disabled={!canCashOut}
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 disabled:opacity-50"
+            className="w-full bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-bold py-4 sm:py-3 text-base sm:text-sm disabled:opacity-50"
           >
             {canCashOut ? `Cash Out $${Math.floor(gameData.currentBet * gameData.currentMultiplier)}` : 'Reveal a tile first'}
           </Button>
@@ -88,20 +88,20 @@ const GameControls = ({ gameData, onStartGame, onCashOut, onReset }: GameControl
       {(gameData.gameState === 'lost' || gameData.gameState === 'won') && (
         <div className="space-y-4">
           {gameData.gameState === 'lost' && (
-            <div className="text-center p-4 bg-red-900/30 rounded-lg border border-red-700">
-              <p className="text-red-300">You lost ${gameData.currentBet}</p>
+            <div className="text-center p-3 sm:p-4 bg-red-900/30 rounded-lg border border-red-700">
+              <p className="text-red-300 text-sm sm:text-base">You lost ${gameData.currentBet}</p>
             </div>
           )}
           
           {gameData.gameState === 'won' && (
-            <div className="text-center p-4 bg-emerald-900/30 rounded-lg border border-emerald-700">
-              <p className="text-emerald-300">You won ${Math.floor(gameData.currentBet * gameData.currentMultiplier)}!</p>
+            <div className="text-center p-3 sm:p-4 bg-emerald-900/30 rounded-lg border border-emerald-700">
+              <p className="text-emerald-300 text-sm sm:text-base">You won ${Math.floor(gameData.currentBet * gameData.currentMultiplier)}!</p>
             </div>
           )}
           
           <Button 
             onClick={onReset}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3"
+            className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold py-4 sm:py-3 text-base sm:text-sm"
           >
             Play Again
           </Button>
@@ -114,7 +114,7 @@ const GameControls = ({ gameData, onStartGame, onCashOut, onReset }: GameControl
             onClick={() => setBetAmount(10)}
             variant="outline"
             size="sm"
-            className="border-slate-600 text-gray-300 hover:bg-slate-700"
+            className="border-slate-600 text-gray-300 hover:bg-slate-700 active:bg-slate-600 py-3 sm:py-2"
             disabled={gameData.gameState === 'playing'}
           >
             $10
@@ -123,7 +123,7 @@ const GameControls = ({ gameData, onStartGame, onCashOut, onReset }: GameControl
             onClick={() => setBetAmount(50)}
             variant="outline"
             size="sm"
-            className="border-slate-600 text-gray-300 hover:bg-slate-700"
+            className="border-slate-600 text-gray-300 hover:bg-slate-700 active:bg-slate-600 py-3 sm:py-2"
             disabled={gameData.gameState === 'playing'}
           >
             $50
@@ -132,7 +132,7 @@ const GameControls = ({ gameData, onStartGame, onCashOut, onReset }: GameControl
             onClick={() => setBetAmount(100)}
             variant="outline"
             size="sm"
-            className="border-slate-600 text-gray-300 hover:bg-slate-700"
+            className="border-slate-600 text-gray-300 hover:bg-slate-700 active:bg-slate-600 py-3 sm:py-2"
             disabled={gameData.gameState === 'playing'}
           >
             $100
