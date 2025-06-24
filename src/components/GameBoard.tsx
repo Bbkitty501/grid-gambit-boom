@@ -1,0 +1,79 @@
+
+import { GameData } from "@/pages/Index";
+import { cn } from "@/lib/utils";
+
+interface GameBoardProps {
+  gameData: GameData;
+  onTileClick: (row: number, col: number) => void;
+}
+
+const GameBoard = ({ gameData, onTileClick }: GameBoardProps) => {
+  const getTileContent = (row: number, col: number) => {
+    const tileState = gameData.grid[row][col];
+    
+    if (tileState === 'safe') {
+      return '💎';
+    } else if (tileState === 'mine') {
+      return '💣';
+    }
+    return '';
+  };
+
+  const getTileStyle = (row: number, col: number) => {
+    const tileState = gameData.grid[row][col];
+    const isGameOver = gameData.gameState === 'lost' || gameData.gameState === 'won';
+    
+    if (tileState === 'hidden') {
+      return cn(
+        "bg-gradient-to-br from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600",
+        "border-2 border-slate-500 hover:border-slate-400",
+        "transform hover:scale-105 transition-all duration-200",
+        gameData.gameState === 'playing' && "cursor-pointer",
+        gameData.gameState !== 'playing' && "cursor-not-allowed opacity-50"
+      );
+    } else if (tileState === 'safe') {
+      return "bg-gradient-to-br from-emerald-500 to-green-600 border-2 border-emerald-400 scale-105";
+    } else if (tileState === 'mine') {
+      return "bg-gradient-to-br from-red-600 to-red-700 border-2 border-red-500 scale-105 animate-pulse";
+    }
+  };
+
+  return (
+    <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-2xl">
+      <div className="grid grid-cols-5 gap-3 max-w-md mx-auto">
+        {gameData.grid.map((row, rowIndex) =>
+          row.map((_, colIndex) => (
+            <button
+              key={`${rowIndex}-${colIndex}`}
+              className={cn(
+                "aspect-square rounded-lg text-2xl font-bold flex items-center justify-center",
+                "transition-all duration-300 ease-out",
+                getTileStyle(rowIndex, colIndex)
+              )}
+              onClick={() => onTileClick(rowIndex, colIndex)}
+              disabled={gameData.gameState !== 'playing' || gameData.grid[rowIndex][colIndex] !== 'hidden'}
+            >
+              {getTileContent(rowIndex, colIndex)}
+            </button>
+          ))
+        )}
+      </div>
+      
+      {gameData.gameState === 'lost' && (
+        <div className="text-center mt-6 p-4 bg-red-900/50 rounded-lg border border-red-700">
+          <h3 className="text-xl font-bold text-red-400 mb-2">💥 BOOM! You hit a mine!</h3>
+          <p className="text-red-300">Better luck next time!</p>
+        </div>
+      )}
+      
+      {gameData.gameState === 'won' && (
+        <div className="text-center mt-6 p-4 bg-emerald-900/50 rounded-lg border border-emerald-700">
+          <h3 className="text-xl font-bold text-emerald-400 mb-2">🎉 Cashed Out Successfully!</h3>
+          <p className="text-emerald-300">Winnings added to your balance!</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default GameBoard;
