@@ -10,6 +10,12 @@ interface GameBoardProps {
 const GameBoard = ({ gameData, onTileClick }: GameBoardProps) => {
   const getTileContent = (row: number, col: number) => {
     const tileState = gameData.grid[row][col];
+    const position = `${row}-${col}`;
+    
+    // Show bombs after cashing out successfully
+    if (gameData.gameState === 'won' && gameData.minePositions.has(position)) {
+      return '💣';
+    }
     
     if (tileState === 'safe') {
       return '💎';
@@ -21,6 +27,12 @@ const GameBoard = ({ gameData, onTileClick }: GameBoardProps) => {
 
   const getTileStyle = (row: number, col: number) => {
     const tileState = gameData.grid[row][col];
+    const position = `${row}-${col}`;
+    
+    // Style for revealed bombs after winning
+    if (gameData.gameState === 'won' && gameData.minePositions.has(position) && tileState === 'hidden') {
+      return "bg-gradient-to-br from-orange-500 to-orange-600 border-2 border-orange-400 scale-105";
+    }
     
     if (tileState === 'hidden') {
       return cn(
@@ -70,6 +82,7 @@ const GameBoard = ({ gameData, onTileClick }: GameBoardProps) => {
         <div className="text-center mt-4 sm:mt-6 p-3 sm:p-4 bg-emerald-900/50 rounded-lg border border-emerald-700">
           <h3 className="text-lg sm:text-xl font-bold text-emerald-400 mb-2">🎉 Cashed Out Successfully!</h3>
           <p className="text-sm sm:text-base text-emerald-300">Winnings added to your balance!</p>
+          <p className="text-xs sm:text-sm text-orange-300 mt-2">💣 Orange tiles show where the mines were</p>
         </div>
       )}
     </div>
