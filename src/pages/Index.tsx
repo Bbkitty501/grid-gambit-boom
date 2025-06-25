@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import GameBoard from "@/components/GameBoard";
 import GameControls from "@/components/GameControls";
@@ -84,8 +83,7 @@ const Index = () => {
     } else {
       // Safe tile - calculate new multiplier
       const newRevealedCount = gameData.revealedCount + 1;
-      const totalSafeTiles = 25 - gameData.mineCount;
-      const newMultiplier = calculateMultiplier(newRevealedCount, totalSafeTiles, gameData.mineCount);
+      const newMultiplier = calculateMultiplier(newRevealedCount, gameData.mineCount, gameData.currentBet);
       
       const newGrid = [...gameData.grid];
       newGrid[row][col] = 'safe';
@@ -99,12 +97,34 @@ const Index = () => {
     }
   };
 
-  const calculateMultiplier = (revealed: number, totalSafe: number, mines: number): number => {
+  const calculateMultiplier = (revealed: number, mines: number, betAmount: number): number => {
     if (revealed === 0) return 1.0;
-    // Progressive multiplier based on risk
-    const riskFactor = mines / 25;
-    const progressFactor = revealed / totalSafe;
-    return 1 + (progressFactor * riskFactor * 10);
+    
+    // Base multiplier increases with mine count
+    let baseMineMultiplier;
+    switch (mines) {
+      case 1:
+        baseMineMultiplier = 1.1; // Low risk, low reward
+        break;
+      case 3:
+        baseMineMultiplier = 1.3; // Medium risk, medium reward
+        break;
+      case 5:
+        baseMineMultiplier = 1.6; // High risk, high reward
+        break;
+      case 8:
+        baseMineMultiplier = 2.2; // Extreme risk, extreme reward
+        break;
+      default:
+        baseMineMultiplier = 1.0;
+    }
+    
+    // Bet amount multiplier - higher bets get better returns per gem
+    const betMultiplier = 1 + (betAmount / 100) * 0.1; // Every $100 bet adds 10% bonus
+    
+    // Each revealed gem compounds the multiplier
+    const compoundRate = baseMineMultiplier * betMultiplier;
+    return Math.pow(compoundRate, revealed);
   };
 
   const cashOut = () => {
