@@ -59,14 +59,10 @@ const Auth = () => {
           navigate("/");
         }
       } else {
-        // Sign Up
-        const redirectUrl = `${window.location.origin}/`;
-        const { error } = await supabase.auth.signUp({
+        // Sign Up - no email confirmation needed
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: {
-            emailRedirectTo: redirectUrl,
-          },
         });
 
         if (error) {
@@ -75,12 +71,21 @@ const Auth = () => {
             description: error.message,
             variant: "destructive",
           });
-        } else {
+        } else if (data.user && !data.session) {
+          // Email confirmation is still enabled - show message
           toast({
-            title: "Account Created",
-            description: "Please check your email to verify your account",
+            title: "Check Your Email",
+            description: "Please check your email to verify your account before signing in.",
+            variant: "default",
           });
           setIsSignIn(true);
+        } else {
+          // User was created and signed in immediately
+          toast({
+            title: "Account Created",
+            description: "Welcome! You can now start playing!",
+          });
+          navigate("/");
         }
       }
     } catch (error) {
