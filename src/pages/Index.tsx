@@ -1,7 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import GameBoard from "@/components/GameBoard";
 import GameControls from "@/components/GameControls";
 import GameStats from "@/components/GameStats";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 export type GameState = 'idle' | 'playing' | 'won' | 'lost';
 
@@ -17,6 +20,9 @@ export interface GameData {
 }
 
 const Index = () => {
+  const { user, loading, signOut } = useAuth();
+  const navigate = useNavigate();
+
   const [gameData, setGameData] = useState<GameData>({
     grid: Array(5).fill(null).map(() => Array(5).fill('hidden')),
     mineCount: 3,
@@ -27,6 +33,40 @@ const Index = () => {
     gameState: 'idle',
     minePositions: new Set(),
   });
+
+  // Show loading state while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-emerald-400 to-green-500 bg-clip-text text-transparent">
+            MINESWEEPER
+          </h1>
+          <p className="text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to auth if not authenticated
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-emerald-400 to-green-500 bg-clip-text text-transparent">
+            MINESWEEPER
+          </h1>
+          <p className="text-gray-400 mb-6">Please sign in to play</p>
+          <Button
+            onClick={() => navigate("/auth")}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
+          >
+            Sign In / Sign Up
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const resetGame = () => {
     setGameData(prev => ({
@@ -139,11 +179,23 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white">
       <div className="container mx-auto px-4 py-4 sm:py-8">
-        <div className="text-center mb-6 sm:mb-8">
+        <div className="text-center mb-6 sm:mb-8 relative">
           <h1 className="text-3xl sm:text-5xl font-bold mb-2 bg-gradient-to-r from-emerald-400 to-green-500 bg-clip-text text-transparent">
             MINESWEEPER
           </h1>
           <p className="text-gray-400 text-sm sm:text-lg">Find the safe tiles, avoid the mines, cash out before it's too late</p>
+          
+          <div className="absolute top-0 right-0 flex items-center gap-2">
+            <span className="text-sm text-gray-400">Welcome, {user.email}</span>
+            <Button
+              onClick={signOut}
+              variant="outline"
+              size="sm"
+              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+            >
+              Sign Out
+            </Button>
+          </div>
         </div>
 
         <div className="max-w-4xl mx-auto space-y-6 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-8">
