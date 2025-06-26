@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import GameBoard from "@/components/GameBoard";
@@ -40,13 +39,13 @@ const Index = () => {
 
   // Update local balance when persistent data loads
   useEffect(() => {
-    if (persistentGameData?.balance && !isGameDataLoading) {
+    if (persistentGameData?.balance !== undefined && !isGameDataLoading) {
       setGameData(prev => ({
         ...prev,
         balance: persistentGameData.balance,
       }));
     }
-  }, [persistentGameData, isGameDataLoading]);
+  }, [persistentGameData?.balance, isGameDataLoading]);
 
   // Show loading state while checking auth
   if (loading || isGameDataLoading) {

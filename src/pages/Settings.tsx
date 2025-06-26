@@ -57,7 +57,7 @@ const Settings = () => {
             <div>
               <h2 className="text-xl font-semibold mb-4">About</h2>
               <p className="text-gray-400 text-sm">
-                Sheep Sweeper - Find the safe tiles, avoid the sheep, and build your flock!
+                Minesweeper - Find the safe tiles, avoid the mines, and cash out before it's too late!
               </p>
             </div>
           </div>

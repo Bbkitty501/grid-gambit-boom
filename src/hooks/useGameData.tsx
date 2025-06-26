@@ -37,31 +37,31 @@ export const useGameData = () => {
     mutationFn: async (newBalance: number) => {
       if (!user) throw new Error('User not authenticated');
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('user_game_data')
         .upsert({ 
           user_id: user.id,
           balance: newBalance,
           updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id'
         })
-        .eq('user_id', user.id);
+        .select()
+        .single();
 
       if (error) throw error;
-      return newBalance;
+      return data;
     },
-    onSuccess: (newBalance) => {
-      queryClient.setQueryData(['user-game-data', user?.id], (oldData: any) => ({
-        ...oldData,
-        balance: newBalance,
-      }));
+    onSuccess: (data) => {
+      queryClient.setQueryData(['user-game-data', user?.id], data);
     },
     onError: (error) => {
+      console.error('Error updating balance:', error);
       toast({
         title: "Error",
         description: "Failed to update balance",
         variant: "destructive",
       });
-      console.error('Error updating balance:', error);
     },
   });
 
