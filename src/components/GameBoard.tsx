@@ -12,7 +12,7 @@ const GameBoard = ({ gameData, onTileClick }: GameBoardProps) => {
     const tileState = gameData.grid[row][col];
     const position = `${row}-${col}`;
     
-    // Show bombs after cashing out successfully
+    // Show mines after cashing out successfully
     if (gameData.gameState === 'won' && gameData.minePositions.has(position)) {
       return '💣';
     }
@@ -29,7 +29,7 @@ const GameBoard = ({ gameData, onTileClick }: GameBoardProps) => {
     const tileState = gameData.grid[row][col];
     const position = `${row}-${col}`;
     
-    // Style for revealed bombs after winning
+    // Style for revealed mines after winning
     if (gameData.gameState === 'won' && gameData.minePositions.has(position) && tileState === 'hidden') {
       return "bg-gradient-to-br from-orange-500 to-orange-600 border-2 border-orange-400 scale-105";
     }

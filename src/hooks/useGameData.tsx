@@ -20,7 +20,7 @@ export const useGameData = () => {
         .from('user_game_data')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching game data:', error);
@@ -39,7 +39,8 @@ export const useGameData = () => {
 
       const { error } = await supabase
         .from('user_game_data')
-        .update({ 
+        .upsert({ 
+          user_id: user.id,
           balance: newBalance,
           updated_at: new Date().toISOString()
         })

@@ -12,14 +12,14 @@ import { useGameData } from "@/hooks/useGameData";
 export type GameState = 'idle' | 'playing' | 'won' | 'lost';
 
 export interface GameData {
-  grid: ('hidden' | 'safe' | 'sheep')[][];
-  sheepCount: number;
+  grid: ('hidden' | 'safe' | 'mine')[][];
+  mineCount: number;
   revealedCount: number;
   currentMultiplier: number;
   balance: number;
   currentBet: number;
   gameState: GameState;
-  sheepPositions: Set<string>;
+  minePositions: Set<string>;
 }
 
 const Index = () => {
@@ -29,13 +29,13 @@ const Index = () => {
 
   const [gameData, setGameData] = useState<GameData>({
     grid: Array(5).fill(null).map(() => Array(5).fill('hidden')),
-    sheepCount: 3,
+    mineCount: 3,
     revealedCount: 0,
     currentMultiplier: 1.0,
     balance: 1000,
     currentBet: 10,
     gameState: 'idle',
-    sheepPositions: new Set(),
+    minePositions: new Set(),
   });
 
   // Update local balance when persistent data loads
@@ -54,7 +54,7 @@ const Index = () => {
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-emerald-400 to-green-500 bg-clip-text text-transparent">
-            SHEEP SWEEPER
+            MINESWEEPER
           </h1>
           <p className="text-gray-400">Loading...</p>
         </div>
@@ -68,7 +68,7 @@ const Index = () => {
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-emerald-400 to-green-500 bg-clip-text text-transparent">
-            SHEEP SWEEPER
+            MINESWEEPER
           </h1>
           <p className="text-gray-400 mb-6">Please sign in to play</p>
           <Button
@@ -89,29 +89,29 @@ const Index = () => {
       revealedCount: 0,
       currentMultiplier: 1.0,
       gameState: 'idle',
-      sheepPositions: new Set(),
+      minePositions: new Set(),
     }));
   };
 
-  const startGame = (betAmount: number, sheep: number) => {
+  const startGame = (betAmount: number, mines: number) => {
     if (betAmount > gameData.balance) return;
 
-    // Generate sheep positions
-    const sheepPositions = new Set<string>();
-    while (sheepPositions.size < sheep) {
+    // Generate mine positions
+    const minePositions = new Set<string>();
+    while (minePositions.size < mines) {
       const row = Math.floor(Math.random() * 5);
       const col = Math.floor(Math.random() * 5);
-      sheepPositions.add(`${row}-${col}`);
+      minePositions.add(`${row}-${col}`);
     }
 
     const newBalance = gameData.balance - betAmount;
     setGameData(prev => ({
       ...prev,
       currentBet: betAmount,
-      sheepCount: sheep,
+      mineCount: mines,
       balance: newBalance,
       gameState: 'playing',
-      sheepPositions,
+      minePositions,
       grid: Array(5).fill(null).map(() => Array(5).fill('hidden')),
       revealedCount: 0,
       currentMultiplier: 1.0,
@@ -126,12 +126,12 @@ const Index = () => {
     if (gameData.grid[row][col] !== 'hidden') return;
 
     const position = `${row}-${col}`;
-    const isSheep = gameData.sheepPositions.has(position);
+    const isMine = gameData.minePositions.has(position);
 
-    if (isSheep) {
-      // Hit a sheep - game over
+    if (isMine) {
+      // Hit a mine - game over
       const newGrid = [...gameData.grid];
-      newGrid[row][col] = 'sheep';
+      newGrid[row][col] = 'mine';
       
       setGameData(prev => ({
         ...prev,
@@ -141,7 +141,7 @@ const Index = () => {
     } else {
       // Safe tile - calculate new multiplier
       const newRevealedCount = gameData.revealedCount + 1;
-      const newMultiplier = calculateMultiplier(newRevealedCount, gameData.sheepCount, gameData.currentBet);
+      const newMultiplier = calculateMultiplier(newRevealedCount, gameData.mineCount, gameData.currentBet);
       
       const newGrid = [...gameData.grid];
       newGrid[row][col] = 'safe';
@@ -155,33 +155,33 @@ const Index = () => {
     }
   };
 
-  const calculateMultiplier = (revealed: number, sheep: number, betAmount: number): number => {
+  const calculateMultiplier = (revealed: number, mines: number, betAmount: number): number => {
     if (revealed === 0) return 1.0;
     
-    // Base multiplier increases with sheep count
-    let baseSheepMultiplier;
-    switch (sheep) {
+    // Base multiplier increases with mine count
+    let baseMineMultiplier;
+    switch (mines) {
       case 1:
-        baseSheepMultiplier = 1.1; // Low risk, low reward
+        baseMineMultiplier = 1.1; // Low risk, low reward
         break;
       case 3:
-        baseSheepMultiplier = 1.3; // Medium risk, medium reward
+        baseMineMultiplier = 1.3; // Medium risk, medium reward
         break;
       case 5:
-        baseSheepMultiplier = 1.6; // High risk, high reward
+        baseMineMultiplier = 1.6; // High risk, high reward
         break;
       case 8:
-        baseSheepMultiplier = 2.2; // Extreme risk, extreme reward
+        baseMineMultiplier = 2.2; // Extreme risk, extreme reward
         break;
       default:
-        baseSheepMultiplier = 1.0;
+        baseMineMultiplier = 1.0;
     }
     
     // Bet amount multiplier - higher bets get better returns per gem
-    const betMultiplier = 1 + (betAmount / 100) * 0.1; // Every 100 sheep adds 10% bonus
+    const betMultiplier = 1 + (betAmount / 100) * 0.1; // Every 100 coins adds 10% bonus
     
     // Each revealed gem compounds the multiplier
-    const compoundRate = baseSheepMultiplier * betMultiplier;
+    const compoundRate = baseMineMultiplier * betMultiplier;
     return Math.pow(compoundRate, revealed);
   };
 
@@ -204,9 +204,9 @@ const Index = () => {
       <div className="container mx-auto px-4 py-4 sm:py-8">
         <div className="text-center mb-6 sm:mb-8 relative">
           <h1 className="text-3xl sm:text-5xl font-bold mb-2 bg-gradient-to-r from-emerald-400 to-green-500 bg-clip-text text-transparent">
-            SHEEP SWEEPER
+            MINESWEEPER
           </h1>
-          <p className="text-gray-400 text-sm sm:text-lg">Find the safe tiles, avoid the sheep, cash out before it's too late</p>
+          <p className="text-gray-400 text-sm sm:text-lg">Find the safe tiles, avoid the mines, cash out before it's too late</p>
           
           <div className="absolute top-0 right-0 flex items-center gap-2">
             <span className="text-sm text-gray-400">Welcome, {user.email}</span>
