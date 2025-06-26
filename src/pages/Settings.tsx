@@ -1,7 +1,7 @@
 
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Dice6 } from "lucide-react";
+import { ArrowLeft, Dice6, Package, Coins } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 const Settings = () => {
@@ -41,17 +41,47 @@ const Settings = () => {
             </div>
 
             <div className="border-b border-slate-600 pb-4">
-              <h2 className="text-xl font-semibold mb-4">Game Dice</h2>
-              <p className="text-gray-400 text-sm mb-4">
-                Access the game dice feature for additional gameplay options.
-              </p>
-              <Button
-                onClick={() => navigate("/dice")}
-                className="bg-purple-600 hover:bg-purple-700 text-white"
-              >
-                <Dice6 className="w-4 h-4 mr-2" />
-                Go to Game Dice
-              </Button>
+              <h2 className="text-xl font-semibold mb-4">Games</h2>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-gray-400 text-sm mb-2">
+                    Roll dice with customizable targets and multipliers.
+                  </p>
+                  <Button
+                    onClick={() => navigate("/dice")}
+                    className="bg-purple-600 hover:bg-purple-700 text-white w-full"
+                  >
+                    <Dice6 className="w-4 h-4 mr-2" />
+                    Dice Game
+                  </Button>
+                </div>
+
+                <div>
+                  <p className="text-gray-400 text-sm mb-2">
+                    Open cases and win random prizes with different rarities.
+                  </p>
+                  <Button
+                    onClick={() => navigate("/cases")}
+                    className="bg-orange-600 hover:bg-orange-700 text-white w-full"
+                  >
+                    <Package className="w-4 h-4 mr-2" />
+                    Cases
+                  </Button>
+                </div>
+
+                <div>
+                  <p className="text-gray-400 text-sm mb-2">
+                    Create and trade meme coins with live chat and rugpull mechanics.
+                  </p>
+                  <Button
+                    onClick={() => navigate("/meme-coins")}
+                    className="bg-yellow-600 hover:bg-yellow-700 text-white w-full"
+                  >
+                    <Coins className="w-4 h-4 mr-2" />
+                    Meme Coins
+                  </Button>
+                </div>
+              </div>
             </div>
 
             <div>
