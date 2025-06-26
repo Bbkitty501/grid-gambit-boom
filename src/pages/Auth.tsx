@@ -104,7 +104,7 @@ const Auth = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-emerald-400 to-green-500 bg-clip-text text-transparent">
-            MINESWEEPER
+            SHEEP SWEEPER
           </h1>
           <p className="text-gray-400">
             {isSignIn ? "Sign in to your account" : "Create your account"}
