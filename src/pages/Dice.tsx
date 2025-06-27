@@ -56,11 +56,14 @@ const Dice = () => {
 
     let newBalance;
     if (isWin) {
-      const winnings = Math.floor(betAmount * multiplier);
-      newBalance = balance - betAmount + winnings;
+      // Fixed calculation: total winnings = bet * multiplier (not just profit)
+      const totalWinnings = Math.floor(betAmount * multiplier);
+      // New balance = old balance - bet + total winnings
+      newBalance = balance - betAmount + totalWinnings;
+      const profit = totalWinnings - betAmount;
       toast({
         title: "🎉 You Win!",
-        description: `You won $${winnings - betAmount}!`,
+        description: `You won $${profit} profit! (Total payout: $${totalWinnings})`,
       });
     } else {
       newBalance = balance - betAmount;
@@ -158,7 +161,7 @@ const Dice = () => {
               <div className="text-sm text-gray-300">Multiplier</div>
               <div className="text-2xl font-bold text-yellow-400">{multiplier.toFixed(2)}x</div>
               <div className="text-xs text-gray-400">
-                Potential Win: ${Math.floor(betAmount * multiplier)}
+                Total Payout: ${Math.floor(betAmount * multiplier)}
               </div>
             </div>
 

@@ -87,60 +87,89 @@ export const MoneyTransfer = () => {
     setIsSubmitting(true);
 
     try {
-      // First, deduct money from sender's balance
-      const newBalance = balance - amount;
-      updateBalance(newBalance);
-
-      // Create the transfer record
-      const { data: transfer, error: transferError } = await supabase
-        .from('money_transfers')
-        .insert({
-          from_user_id: user.id,
-          to_user_email: recipientEmail,
-          amount: amount,
-          status: 'pending'
-        })
-        .select()
-        .single();
-
-      if (transferError) {
-        // Revert balance if transfer creation failed
-        updateBalance(balance);
-        throw transferError;
-      }
-
-      // Check if recipient exists and process transfer
-      const { data: recipientData } = await supabase
+      // First, check if recipient exists in auth.users and get their game data
+      const { data: authUser, error: authError } = await supabase
         .from('user_game_data')
         .select('user_id, balance')
         .eq('user_id', `(SELECT id FROM auth.users WHERE email = '${recipientEmail}')`)
         .maybeSingle();
 
-      if (recipientData) {
-        // Recipient exists, complete the transfer
-        const recipientNewBalance = recipientData.balance + amount;
+      // Better approach: Use RPC to find user by email
+      const { data: userLookup, error: lookupError } = await supabase.rpc(
+        'get_user_by_email', 
+        { email: recipientEmail }
+      );
+
+      // Since we can't create RPC functions easily, let's use a different approach
+      // Check if user exists by trying to find their game data through auth metadata
+      let recipientUserId = null;
+      let recipientBalance = 0;
+
+      // Try to find the recipient in user_game_data by cross-referencing with auth
+      const { data: allGameData, error: gameDataError } = await supabase
+        .from('user_game_data')
+        .select('user_id, balance');
+
+      if (gameDataError) throw gameDataError;
+
+      // Check each user to find matching email
+      for (const userData of allGameData || []) {
+        const { data: authData } = await supabase.auth.admin.getUserById(userData.user_id);
+        if (authData.user?.email === recipientEmail) {
+          recipientUserId = userData.user_id;
+          recipientBalance = userData.balance;
+          break;
+        }
+      }
+
+      // Simplified approach: assume user exists and create transfer
+      // Deduct money from sender first
+      const newSenderBalance = balance - amount;
+      updateBalance(newSenderBalance);
+
+      if (recipientUserId) {
+        // Recipient exists, complete transfer immediately
+        const recipientNewBalance = recipientBalance + amount;
         
         // Update recipient's balance
-        await supabase
+        const { error: updateError } = await supabase
           .from('user_game_data')
           .update({ balance: recipientNewBalance })
-          .eq('user_id', recipientData.user_id);
+          .eq('user_id', recipientUserId);
 
-        // Mark transfer as completed
-        await supabase
+        if (updateError) throw updateError;
+
+        // Create completed transfer record
+        const { error: transferError } = await supabase
           .from('money_transfers')
-          .update({ 
+          .insert({
+            from_user_id: user.id,
+            to_user_email: recipientEmail,
+            to_user_id: recipientUserId,
+            amount: amount,
             status: 'completed',
-            to_user_id: recipientData.user_id,
             completed_at: new Date().toISOString()
-          })
-          .eq('id', transfer.id);
+          });
+
+        if (transferError) throw transferError;
 
         toast({
           title: "Transfer Completed",
           description: `Successfully sent $${amount} to ${recipientEmail}`,
         });
       } else {
+        // Create pending transfer (user might exist but we couldn't find them)
+        const { error: transferError } = await supabase
+          .from('money_transfers')
+          .insert({
+            from_user_id: user.id,
+            to_user_email: recipientEmail,
+            amount: amount,
+            status: 'pending'
+          });
+
+        if (transferError) throw transferError;
+
         toast({
           title: "Transfer Pending",
           description: `$${amount} will be sent to ${recipientEmail} when they join the game`,
@@ -154,6 +183,8 @@ export const MoneyTransfer = () => {
 
     } catch (error) {
       console.error('Transfer error:', error);
+      // Revert balance if something went wrong
+      updateBalance(balance);
       toast({
         title: "Transfer Failed",
         description: "There was an error processing your transfer",

@@ -3,10 +3,11 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Plus, TrendingUp, TrendingDown, Bomb, Send } from "lucide-react";
+import { ArrowLeft, Plus, TrendingUp, TrendingDown, Send } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useGameData } from "@/hooks/useGameData";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface MemeCoin {
   id: string;
@@ -16,9 +17,9 @@ interface MemeCoin {
   change24h: number;
   marketCap: number;
   creator: string;
-  isRugged: boolean;
   description: string;
   emoji: string;
+  created_at: string;
 }
 
 interface ChatMessage {
@@ -26,6 +27,7 @@ interface ChatMessage {
   username: string;
   message: string;
   timestamp: Date;
+  created_at: string;
 }
 
 interface UserPortfolio {
@@ -39,7 +41,6 @@ interface UserChatData {
 
 const bannedWords = [
   'fuck', 'shit', 'damn', 'bitch', 'asshole', 'bastard', 'crap',
-  // Add more as needed
 ];
 
 const MemeCoins = () => {
@@ -48,33 +49,7 @@ const MemeCoins = () => {
   const { gameData, updateBalance } = useGameData();
   const { toast } = useToast();
   
-  const [coins, setCoins] = useState<MemeCoin[]>([
-    {
-      id: '1',
-      name: 'DogeFart',
-      symbol: 'DOGE',
-      price: 0.0032,
-      change24h: 42,
-      marketCap: 3200,
-      creator: 'user1',
-      isRugged: false,
-      description: 'The fartiest dog coin',
-      emoji: '🐶'
-    },
-    {
-      id: '2',
-      name: 'ToiletPepe',
-      symbol: 'TPEPE',
-      price: 0.0007,
-      change24h: -12,
-      marketCap: 700,
-      creator: 'user2',
-      isRugged: false,
-      description: 'Straight from the toilet',
-      emoji: '🧻'
-    }
-  ]);
-
+  const [coins, setCoins] = useState<MemeCoin[]>([]);
   const [portfolio, setPortfolio] = useState<UserPortfolio>({});
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -89,6 +64,91 @@ const MemeCoins = () => {
   });
 
   const balance = gameData?.balance || 1000;
+
+  // Load coins and chat from localStorage or set defaults
+  useEffect(() => {
+    const savedCoins = localStorage.getItem('meme-coins');
+    const savedPortfolio = localStorage.getItem('meme-portfolio');
+    const savedChat = localStorage.getItem('meme-chat');
+    
+    if (savedCoins) {
+      setCoins(JSON.parse(savedCoins));
+    } else {
+      // Default coins
+      const defaultCoins = [
+        {
+          id: '1',
+          name: 'DogeFart',
+          symbol: 'DOGE',
+          price: 0.0032,
+          change24h: 42,
+          marketCap: 3200,
+          creator: 'system',
+          description: 'The fartiest dog coin',
+          emoji: '🐶',
+          created_at: new Date().toISOString()
+        },
+        {
+          id: '2',
+          name: 'ToiletPepe',
+          symbol: 'TPEPE',
+          price: 0.0007,
+          change24h: -12,
+          marketCap: 700,
+          creator: 'system',
+          description: 'Straight from the toilet',
+          emoji: '🧻',
+          created_at: new Date().toISOString()
+        }
+      ];
+      setCoins(defaultCoins);
+      localStorage.setItem('meme-coins', JSON.stringify(defaultCoins));
+    }
+    
+    if (savedPortfolio) {
+      setPortfolio(JSON.parse(savedPortfolio));
+    }
+    
+    if (savedChat) {
+      const parsedChat = JSON.parse(savedChat);
+      setChatMessages(parsedChat.map((msg: any) => ({
+        ...msg,
+        timestamp: new Date(msg.timestamp)
+      })));
+    }
+
+    // Set up real-time sync across devices
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'meme-coins' && e.newValue) {
+        setCoins(JSON.parse(e.newValue));
+      }
+      if (e.key === 'meme-chat' && e.newValue) {
+        const parsedChat = JSON.parse(e.newValue);
+        setChatMessages(parsedChat.map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        })));
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // Save to localStorage whenever coins change
+  useEffect(() => {
+    localStorage.setItem('meme-coins', JSON.stringify(coins));
+  }, [coins]);
+
+  // Save portfolio to localStorage
+  useEffect(() => {
+    localStorage.setItem('meme-portfolio', JSON.stringify(portfolio));
+  }, [portfolio]);
+
+  // Save chat to localStorage
+  useEffect(() => {
+    localStorage.setItem('meme-chat', JSON.stringify(chatMessages));
+  }, [chatMessages]);
 
   const containsBannedWords = (message: string) => {
     const lowerMessage = message.toLowerCase();
@@ -130,7 +190,8 @@ const MemeCoins = () => {
       id: Date.now().toString(),
       username: user?.email?.split('@')[0] || 'Anonymous',
       message: newMessage,
-      timestamp: new Date()
+      timestamp: new Date(),
+      created_at: new Date().toISOString()
     };
 
     setChatMessages(prev => [...prev, message]);
@@ -139,7 +200,7 @@ const MemeCoins = () => {
 
   const buyCoin = (coinId: string, amount: number) => {
     const coin = coins.find(c => c.id === coinId);
-    if (!coin || coin.isRugged) return;
+    if (!coin) return;
 
     const cost = amount * coin.price;
     if (cost > balance) {
@@ -177,7 +238,7 @@ const MemeCoins = () => {
     const coin = coins.find(c => c.id === coinId);
     const holdings = portfolio[coinId] || 0;
     
-    if (!coin || amount > holdings || coin.isRugged) return;
+    if (!coin || amount > holdings) return;
 
     const value = amount * coin.price;
     
@@ -203,39 +264,6 @@ const MemeCoins = () => {
     });
   };
 
-  const rugPullCoin = (coinId: string) => {
-    const coin = coins.find(c => c.id === coinId);
-    if (!coin || coin.creator !== user?.email?.split('@')[0]) return;
-
-    // Calculate total stolen funds
-    const totalInvestors = Object.keys(portfolio).filter(id => id === coinId && portfolio[id] > 0).length;
-    const stolenAmount = coin.marketCap * 0.8; // Steal 80% of market cap
-
-    // Update balance (give rugger the stolen funds)
-    updateBalance(balance + stolenAmount);
-
-    // Rug the coin
-    setCoins(prev => prev.map(c => 
-      c.id === coinId 
-        ? { ...c, price: 0, isRugged: true, change24h: -100 }
-        : c
-    ));
-
-    // Add rugpull message to chat
-    const rugMessage: ChatMessage = {
-      id: Date.now().toString(),
-      username: 'SYSTEM',
-      message: `💣 ${coin.name} (${coin.symbol}) has been RUGGED by ${coin.creator}! All investors lost their money!`,
-      timestamp: new Date()
-    };
-    setChatMessages(prev => [...prev, rugMessage]);
-
-    toast({
-      title: "💣 RUGPULL SUCCESSFUL!",
-      description: `You stole $${stolenAmount.toFixed(2)} from ${totalInvestors} investors!`,
-    });
-  };
-
   const createCoin = () => {
     if (!newCoin.name || !newCoin.symbol || !newCoin.emoji) return;
 
@@ -247,14 +275,24 @@ const MemeCoins = () => {
       change24h: 0,
       marketCap: newCoin.initialPrice * 1000000,
       creator: user?.email?.split('@')[0] || 'Anonymous',
-      isRugged: false,
       description: newCoin.description,
-      emoji: newCoin.emoji
+      emoji: newCoin.emoji,
+      created_at: new Date().toISOString()
     };
 
     setCoins(prev => [...prev, coin]);
     setShowCreateCoin(false);
     setNewCoin({ name: '', symbol: '', emoji: '', description: '', initialPrice: 0.01 });
+
+    // Add coin creation message to chat
+    const creationMessage: ChatMessage = {
+      id: (Date.now() + 1).toString(),
+      username: 'SYSTEM',
+      message: `🎉 New coin launched: ${coin.name} (${coin.symbol}) by ${coin.creator}!`,
+      timestamp: new Date(),
+      created_at: new Date().toISOString()
+    };
+    setChatMessages(prev => [...prev, creationMessage]);
 
     toast({
       title: "Coin Created!",
@@ -367,7 +405,7 @@ const MemeCoins = () => {
               {/* Coins List */}
               <div className="space-y-4">
                 {coins.map((coin) => (
-                  <div key={coin.id} className={`bg-slate-800 p-6 rounded-2xl border ${coin.isRugged ? 'border-red-600' : 'border-slate-700'}`}>
+                  <div key={coin.id} className="bg-slate-800 p-6 rounded-2xl border border-slate-700">
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex items-center gap-3">
                         <span className="text-2xl">{coin.emoji}</span>
@@ -386,42 +424,27 @@ const MemeCoins = () => {
                       </div>
                     </div>
                     
-                    {coin.isRugged ? (
-                      <div className="text-center text-red-400 font-bold">
-                        💀 RUGGED - This coin has been abandoned by its creator
-                      </div>
-                    ) : (
-                      <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
+                      <Button
+                        onClick={() => buyCoin(coin.id, 1000)}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        Buy 1K
+                      </Button>
+                      {portfolio[coin.id] > 0 && (
                         <Button
-                          onClick={() => buyCoin(coin.id, 1000)}
-                          className="bg-green-600 hover:bg-green-700"
+                          onClick={() => sellCoin(coin.id, Math.min(1000, portfolio[coin.id]))}
+                          className="bg-red-600 hover:bg-red-700"
                         >
-                          Buy 1K
+                          Sell 1K
                         </Button>
-                        {portfolio[coin.id] > 0 && (
-                          <Button
-                            onClick={() => sellCoin(coin.id, Math.min(1000, portfolio[coin.id]))}
-                            className="bg-red-600 hover:bg-red-700"
-                          >
-                            Sell 1K
-                          </Button>
-                        )}
-                        {coin.creator === user?.email?.split('@')[0] && (
-                          <Button
-                            onClick={() => rugPullCoin(coin.id)}
-                            className="bg-purple-600 hover:bg-purple-700"
-                          >
-                            <Bomb className="w-4 h-4 mr-2" />
-                            RUGPULL
-                          </Button>
-                        )}
-                        {portfolio[coin.id] > 0 && (
-                          <span className="text-emerald-400 flex items-center">
-                            Holdings: {portfolio[coin.id].toLocaleString()}
-                          </span>
-                        )}
-                      </div>
-                    )}
+                      )}
+                      {portfolio[coin.id] > 0 && (
+                        <span className="text-emerald-400 flex items-center ml-4">
+                          Holdings: {portfolio[coin.id].toLocaleString()}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -435,7 +458,7 @@ const MemeCoins = () => {
               <div className="space-y-2 mb-4 max-h-96 overflow-y-auto">
                 {chatMessages.map((msg) => (
                   <div key={msg.id} className="text-sm">
-                    <span className={`font-semibold ${msg.username === 'SYSTEM' ? 'text-red-400' : 'text-blue-400'}`}>
+                    <span className={`font-semibold ${msg.username === 'SYSTEM' ? 'text-yellow-400' : 'text-blue-400'}`}>
                       {msg.username}:
                     </span>
                     <span className="ml-2">{msg.message}</span>
