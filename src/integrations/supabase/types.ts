@@ -9,6 +9,75 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      chat_messages: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      meme_coins: {
+        Row: {
+          change_24h: number
+          created_at: string
+          creator_id: string
+          creator_name: string
+          description: string | null
+          emoji: string
+          id: string
+          market_cap: number
+          name: string
+          price: number
+          symbol: string
+          updated_at: string
+        }
+        Insert: {
+          change_24h?: number
+          created_at?: string
+          creator_id: string
+          creator_name: string
+          description?: string | null
+          emoji: string
+          id?: string
+          market_cap?: number
+          name: string
+          price?: number
+          symbol: string
+          updated_at?: string
+        }
+        Update: {
+          change_24h?: number
+          created_at?: string
+          creator_id?: string
+          creator_name?: string
+          description?: string | null
+          emoji?: string
+          id?: string
+          market_cap?: number
+          name?: string
+          price?: number
+          symbol?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       money_transfers: {
         Row: {
           amount: number
@@ -65,6 +134,41 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_portfolios: {
+        Row: {
+          amount: number
+          coin_id: string
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          coin_id: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          coin_id?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_portfolios_coin_id_fkey"
+            columns: ["coin_id"]
+            isOneToOne: false
+            referencedRelation: "meme_coins"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

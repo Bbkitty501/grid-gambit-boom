@@ -1,6 +1,7 @@
+
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Dice6, Package, Coins } from "lucide-react";
+import { ArrowLeft, Dice6, Package, Coins, Zap } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { MoneyTransfer } from "@/components/MoneyTransfer";
 
@@ -76,14 +77,27 @@ const Settings = () => {
 
                 <div>
                   <p className="text-gray-400 text-sm mb-2">
-                    Create and trade meme coins with live chat and rugpull mechanics.
+                    Create and trade meme coins with live multiplayer chat and real-time updates.
                   </p>
                   <Button
                     onClick={() => navigate("/meme-coins")}
                     className="bg-yellow-600 hover:bg-yellow-700 text-white w-full"
                   >
                     <Coins className="w-4 h-4 mr-2" />
-                    Meme Coins
+                    Meme Coins (Multiplayer)
+                  </Button>
+                </div>
+
+                <div>
+                  <p className="text-gray-400 text-sm mb-2">
+                    Drop balls through pegs and hit multiplier slots for big wins!
+                  </p>
+                  <Button
+                    onClick={() => navigate("/plinko")}
+                    className="bg-purple-600 hover:bg-purple-700 text-white w-full"
+                  >
+                    <Zap className="w-4 h-4 mr-2" />
+                    Plink Plank
                   </Button>
                 </div>
               </div>
