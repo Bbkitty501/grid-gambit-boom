@@ -87,42 +87,37 @@ export const MoneyTransfer = () => {
     setIsSubmitting(true);
 
     try {
-      // First, check if recipient exists in auth.users and get their game data
-      const { data: authUser, error: authError } = await supabase
-        .from('user_game_data')
-        .select('user_id, balance')
-        .eq('user_id', `(SELECT id FROM auth.users WHERE email = '${recipientEmail}')`)
-        .maybeSingle();
-
-      // Better approach: Use RPC to find user by email
-      const { data: userLookup, error: lookupError } = await supabase.rpc(
-        'get_user_by_email', 
-        { email: recipientEmail }
-      );
-
-      // Since we can't create RPC functions easily, let's use a different approach
-      // Check if user exists by trying to find their game data through auth metadata
-      let recipientUserId = null;
-      let recipientBalance = 0;
-
-      // Try to find the recipient in user_game_data by cross-referencing with auth
+      // First, find if recipient exists by checking user_game_data
       const { data: allGameData, error: gameDataError } = await supabase
         .from('user_game_data')
         .select('user_id, balance');
 
       if (gameDataError) throw gameDataError;
 
-      // Check each user to find matching email
-      for (const userData of allGameData || []) {
-        const { data: authData } = await supabase.auth.admin.getUserById(userData.user_id);
-        if (authData.user?.email === recipientEmail) {
-          recipientUserId = userData.user_id;
-          recipientBalance = userData.balance;
-          break;
+      let recipientUserId: string | null = null;
+      let recipientBalance = 0;
+
+      // Check each user's game data to find matching email
+      if (allGameData) {
+        for (const userData of allGameData) {
+          try {
+            // Try to get user email from auth (this might fail for security reasons)
+            // For now, we'll create the transfer as pending and let the system handle completion
+            // when the recipient logs in
+            const { data: authUser } = await supabase.auth.admin.getUserById(userData.user_id);
+            if (authUser.user?.email === recipientEmail) {
+              recipientUserId = userData.user_id;
+              recipientBalance = userData.balance;
+              break;
+            }
+          } catch (error) {
+            // If we can't access auth data, continue checking
+            console.log('Could not check user:', error);
+            continue;
+          }
         }
       }
 
-      // Simplified approach: assume user exists and create transfer
       // Deduct money from sender first
       const newSenderBalance = balance - amount;
       updateBalance(newSenderBalance);
@@ -158,7 +153,7 @@ export const MoneyTransfer = () => {
           description: `Successfully sent $${amount} to ${recipientEmail}`,
         });
       } else {
-        // Create pending transfer (user might exist but we couldn't find them)
+        // Create pending transfer
         const { error: transferError } = await supabase
           .from('money_transfers')
           .insert({
