@@ -1,8 +1,8 @@
-
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Dice6, Package, Coins } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { MoneyTransfer } from "@/components/MoneyTransfer";
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -30,7 +30,12 @@ const Settings = () => {
           <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl space-y-6">
             <div className="border-b border-slate-600 pb-4">
               <h2 className="text-xl font-semibold mb-2">Account</h2>
-              <p className="text-gray-400 text-sm mb-4">Signed in as: {user?.email}</p>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-gray-400 text-sm">Signed in as: {user?.email}</p>
+                </div>
+                <MoneyTransfer />
+              </div>
               <Button
                 onClick={signOut}
                 variant="outline"
