@@ -104,7 +104,15 @@ const Settings = () => {
             </div>
 
             <div>
-              <h2 className="text-xl font-semibold mb-4">About</h2>
+              <h2 className="text-xl font-semibold mb-4">
+                <span 
+                  onClick={() => navigate("/blackjack")}
+                  className="cursor-pointer hover:text-green-400 transition-colors"
+                  title="Click me!"
+                >
+                  About
+                </span>
+              </h2>
               <p className="text-gray-400 text-sm">
                 Minesweeper - Find the safe tiles, avoid the mines, and cash out before it's too late!
               </p>

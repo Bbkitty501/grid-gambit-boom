@@ -1,8 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import GameBoard from "@/components/GameBoard";
 import GameControls from "@/components/GameControls";
 import GameStats from "@/components/GameStats";
+import ProfitTracker from "@/components/ProfitTracker";
 import { Button } from "@/components/ui/button";
 import { Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -37,6 +39,8 @@ const Index = () => {
     minePositions: new Set(),
   });
 
+  const [gameEndedForTracker, setGameEndedForTracker] = useState(false);
+
   // Update local balance when persistent data loads
   useEffect(() => {
     if (persistentGameData?.balance !== undefined && !isGameDataLoading) {
@@ -46,6 +50,15 @@ const Index = () => {
       }));
     }
   }, [persistentGameData?.balance, isGameDataLoading]);
+
+  // Track when game ends for profit tracker
+  useEffect(() => {
+    if (gameData.gameState === 'won' || gameData.gameState === 'lost') {
+      setGameEndedForTracker(true);
+    } else {
+      setGameEndedForTracker(false);
+    }
+  }, [gameData.gameState]);
 
   // Show loading state while checking auth
   if (loading || isGameDataLoading) {
@@ -200,6 +213,14 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white">
+      {/* Profit Tracker */}
+      <ProfitTracker
+        currentBet={gameData.currentBet}
+        gameWon={gameData.gameState === 'won'}
+        multiplier={gameData.currentMultiplier}
+        gameEnded={gameEndedForTracker}
+      />
+      
       <div className="container mx-auto px-4 py-4 sm:py-8">
         <div className="text-center mb-6 sm:mb-8 relative">
           <h1 className="text-3xl sm:text-5xl font-bold mb-2 bg-gradient-to-r from-emerald-400 to-green-500 bg-clip-text text-transparent">

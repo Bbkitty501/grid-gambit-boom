@@ -11,6 +11,7 @@ import Dice from "./pages/Dice";
 import Cases from "./pages/Cases";
 import MemeCoins from "./pages/MemeCoins";
 import Plinko from "./pages/Plinko";
+import Blackjack from "./pages/Blackjack";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/cases" element={<Cases />} />
           <Route path="/meme-coins" element={<MemeCoins />} />
           <Route path="/plinko" element={<Plinko />} />
+          <Route path="/blackjack" element={<Blackjack />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
