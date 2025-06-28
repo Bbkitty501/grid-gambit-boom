@@ -30,8 +30,8 @@ interface ChatMessage {
 
 const MemeCoins = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { profile } = useProfile();
+  const { user, loading: authLoading } = useAuth();
+  const { profile, loading: profileLoading } = useProfile();
   const { toast } = useToast();
   
   const [coins, setCoins] = useState<MemeCoin[]>([]);
@@ -44,6 +44,40 @@ const MemeCoins = () => {
     emoji: "",
     description: ""
   });
+
+  // Show loading while auth or profile is loading
+  if (authLoading || profileLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+            MEME COINS
+          </h1>
+          <p className="text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to auth if not authenticated, but don't render anything yet
+  if (!user) {
+    navigate("/auth");
+    return null;
+  }
+
+  // Wait for profile to load before showing the page
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+            MEME COINS
+          </h1>
+          <p className="text-gray-400">Setting up your profile...</p>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (!user || !profile) return;
@@ -176,25 +210,6 @@ const MemeCoins = () => {
       setShowCreateForm(false);
     }
   };
-
-  if (!user || !profile) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
-            MEME COINS
-          </h1>
-          <p className="text-gray-400 mb-6">Please sign in to trade meme coins</p>
-          <Button
-            onClick={() => navigate("/auth")}
-            className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
-          >
-            Sign In / Sign Up
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white">
