@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import GameBoard from "@/components/GameBoard";
@@ -8,6 +7,7 @@ import ProfitTracker from "@/components/ProfitTracker";
 import { Button } from "@/components/ui/button";
 import { Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { useGameData } from "@/hooks/useGameData";
 
 export type GameState = 'idle' | 'playing' | 'won' | 'lost';
@@ -25,6 +25,7 @@ export interface GameData {
 
 const Index = () => {
   const { user, loading, signOut } = useAuth();
+  const { profile, loading: profileLoading } = useProfile();
   const { gameData: persistentGameData, isLoading: isGameDataLoading, updateBalance } = useGameData();
   const navigate = useNavigate();
 
@@ -61,7 +62,7 @@ const Index = () => {
   }, [gameData.gameState]);
 
   // Show loading state while checking auth
-  if (loading || isGameDataLoading) {
+  if (loading || isGameDataLoading || profileLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white flex items-center justify-center">
         <div className="text-center">
@@ -229,7 +230,9 @@ const Index = () => {
           <p className="text-gray-400 text-sm sm:text-lg">Find the safe tiles, avoid the mines, cash out before it's too late</p>
           
           <div className="absolute top-0 right-0 flex items-center gap-2">
-            <span className="text-sm text-gray-400">Welcome, {user.email}</span>
+            <span className="text-sm text-gray-400">
+              Welcome, {profile?.username || 'Loading...'}
+            </span>
             <Button
               onClick={() => navigate("/settings")}
               variant="ghost"
