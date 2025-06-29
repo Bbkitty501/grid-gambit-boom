@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import GameBoard from "@/components/GameBoard";
@@ -21,6 +22,7 @@ export interface GameData {
   currentBet: number;
   gameState: GameState;
   minePositions: Set<string>;
+  gridSize: number;
 }
 
 const Index = () => {
@@ -38,6 +40,7 @@ const Index = () => {
     currentBet: 10,
     gameState: 'idle',
     minePositions: new Set(),
+    gridSize: 5,
   });
 
   const [gameEndedForTracker, setGameEndedForTracker] = useState(false);
@@ -98,7 +101,7 @@ const Index = () => {
   const resetGame = () => {
     setGameData(prev => ({
       ...prev,
-      grid: Array(5).fill(null).map(() => Array(5).fill('hidden')),
+      grid: Array(prev.gridSize).fill(null).map(() => Array(prev.gridSize).fill('hidden')),
       revealedCount: 0,
       currentMultiplier: 1.0,
       gameState: 'idle',
@@ -106,14 +109,16 @@ const Index = () => {
     }));
   };
 
-  const startGame = (betAmount: number, mines: number) => {
+  const startGame = (betAmount: number, mines: number, gridSize: number = 5) => {
     if (betAmount > gameData.balance) return;
 
     // Generate mine positions
     const minePositions = new Set<string>();
+    const totalTiles = gridSize * gridSize;
+    
     while (minePositions.size < mines) {
-      const row = Math.floor(Math.random() * 5);
-      const col = Math.floor(Math.random() * 5);
+      const row = Math.floor(Math.random() * gridSize);
+      const col = Math.floor(Math.random() * gridSize);
       minePositions.add(`${row}-${col}`);
     }
 
@@ -125,9 +130,10 @@ const Index = () => {
       balance: newBalance,
       gameState: 'playing',
       minePositions,
-      grid: Array(5).fill(null).map(() => Array(5).fill('hidden')),
+      grid: Array(gridSize).fill(null).map(() => Array(gridSize).fill('hidden')),
       revealedCount: 0,
       currentMultiplier: 1.0,
+      gridSize,
     }));
 
     // Update persistent balance
@@ -154,7 +160,7 @@ const Index = () => {
     } else {
       // Safe tile - calculate new multiplier
       const newRevealedCount = gameData.revealedCount + 1;
-      const newMultiplier = calculateMultiplier(newRevealedCount, gameData.mineCount, gameData.currentBet);
+      const newMultiplier = calculateMultiplier(newRevealedCount, gameData.mineCount, gameData.gridSize);
       
       const newGrid = [...gameData.grid];
       newGrid[row][col] = 'safe';
@@ -168,34 +174,29 @@ const Index = () => {
     }
   };
 
-  const calculateMultiplier = (revealed: number, mines: number, betAmount: number): number => {
+  const calculateMultiplier = (revealed: number, mines: number, gridSize: number): number => {
     if (revealed === 0) return 1.0;
     
-    // Base multiplier increases with mine count
-    let baseMineMultiplier;
-    switch (mines) {
-      case 1:
-        baseMineMultiplier = 1.1; // Low risk, low reward
-        break;
-      case 3:
-        baseMineMultiplier = 1.3; // Medium risk, medium reward
-        break;
-      case 5:
-        baseMineMultiplier = 1.6; // High risk, high reward
-        break;
-      case 8:
-        baseMineMultiplier = 2.2; // Extreme risk, extreme reward
-        break;
-      default:
-        baseMineMultiplier = 1.0;
+    const totalTiles = gridSize * gridSize;
+    const safeTiles = totalTiles - mines;
+    
+    // Calculate probability of surviving each click
+    let multiplier = 1.0;
+    
+    for (let i = 1; i <= revealed; i++) {
+      const safeTilesRemaining = safeTiles - (i - 1);
+      const totalTilesRemaining = totalTiles - (i - 1);
+      const surviveProbability = safeTilesRemaining / totalTilesRemaining;
+      
+      // House edge factor (97% RTP)
+      const houseEdge = 0.97;
+      
+      // Calculate fair odds and apply house edge
+      const fairOdds = 1 / surviveProbability;
+      multiplier *= fairOdds * houseEdge;
     }
     
-    // Bet amount multiplier - higher bets get better returns per gem
-    const betMultiplier = 1 + (betAmount / 100) * 0.1; // Every 100 coins adds 10% bonus
-    
-    // Each revealed gem compounds the multiplier
-    const compoundRate = baseMineMultiplier * betMultiplier;
-    return Math.pow(compoundRate, revealed);
+    return Math.max(1.0, multiplier);
   };
 
   const cashOut = () => {
