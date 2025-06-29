@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import GameBoard from "@/components/GameBoard";
@@ -40,7 +39,7 @@ const Index = () => {
     currentBet: 10,
     gameState: 'idle',
     minePositions: new Set(),
-    gridSize: 5,
+    gridSize: 5, // Fixed at 5x5
   });
 
   const [gameEndedForTracker, setGameEndedForTracker] = useState(false);
@@ -99,18 +98,27 @@ const Index = () => {
   }
 
   const resetGame = () => {
+    console.log('Resetting game');
     setGameData(prev => ({
       ...prev,
-      grid: Array(prev.gridSize).fill(null).map(() => Array(prev.gridSize).fill('hidden')),
+      grid: Array(5).fill(null).map(() => Array(5).fill('hidden')), // Fixed 5x5
       revealedCount: 0,
       currentMultiplier: 1.0,
       gameState: 'idle',
       minePositions: new Set(),
+      gridSize: 5, // Fixed at 5x5
     }));
   };
 
-  const startGame = (betAmount: number, mines: number, gridSize: number = 5) => {
-    if (betAmount > gameData.balance) return;
+  const startGame = (betAmount: number, mines: number) => { // Removed gridSize parameter
+    console.log('Starting game with:', { betAmount, mines, balance: gameData.balance });
+    
+    if (betAmount > gameData.balance) {
+      console.log('Insufficient balance');
+      return;
+    }
+
+    const gridSize = 5; // Fixed at 5x5
 
     // Generate mine positions
     const minePositions = new Set<string>();
@@ -123,6 +131,8 @@ const Index = () => {
     }
 
     const newBalance = gameData.balance - betAmount;
+    console.log('New balance after bet:', newBalance);
+    
     setGameData(prev => ({
       ...prev,
       currentBet: betAmount,

@@ -4,7 +4,7 @@ import { GameData } from "@/pages/Index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 
 interface GameControlsProps {
   gameData: GameData;
@@ -16,18 +16,28 @@ interface GameControlsProps {
 const GameControls = ({ gameData, onStartGame, onCashOut, onReset }: GameControlsProps) => {
   const [betAmount, setBetAmount] = useState(10);
   const [mineCount, setMineCount] = useState(3);
-  const [gridSize, setGridSize] = useState(5);
+  const gridSize = 5; // Fixed grid size
 
   const handleStartGame = () => {
-    if (betAmount <= 0 || betAmount > gameData.balance) return;
+    console.log('Starting game with:', { betAmount, mineCount, balance: gameData.balance });
+    if (betAmount <= 0 || betAmount > gameData.balance) {
+      console.log('Invalid bet amount:', betAmount, 'Balance:', gameData.balance);
+      return;
+    }
     onStartGame(betAmount, mineCount, gridSize);
   };
 
   const canCashOut = gameData.gameState === 'playing' && gameData.revealedCount > 0;
-  const maxMines = (gridSize * gridSize) - 1;
+  const maxMines = (gridSize * gridSize) - 1; // 24 for 5x5 grid
 
   // Quick bet amounts
   const quickBets = [10, 25, 50, 100, 250];
+
+  const getMineRiskDescription = (mines: number) => {
+    if (mines <= 3) return "🟢 Safe - Slow Growth";
+    if (mines <= 8) return "🟡 Medium Risk - Good Growth";
+    return "🔴 High Risk - Fast Growth";
+  };
 
   return (
     <div className="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 shadow-xl">
@@ -35,20 +45,6 @@ const GameControls = ({ gameData, onStartGame, onCashOut, onReset }: GameControl
       
       {gameData.gameState === 'idle' && (
         <div className="space-y-4">
-          {/* Grid Size Selector */}
-          <div>
-            <Label htmlFor="grid-size" className="text-gray-300 text-sm sm:text-base font-medium">Grid Size</Label>
-            <Select value={gridSize.toString()} onValueChange={(value) => setGridSize(Number(value))}>
-              <SelectTrigger className="bg-slate-700 border-slate-600 text-white mt-1 h-12 sm:h-10">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-slate-700 border-slate-600">
-                <SelectItem value="5">5x5 Grid (25 tiles)</SelectItem>
-                <SelectItem value="8">8x8 Grid (64 tiles)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
           {/* Bet Amount */}
           <div>
             <Label htmlFor="bet-amount" className="text-gray-300 text-sm sm:text-base font-medium">Bet Amount</Label>
@@ -78,34 +74,34 @@ const GameControls = ({ gameData, onStartGame, onCashOut, onReset }: GameControl
             </div>
           </div>
           
-          {/* Mine Count */}
+          {/* Mine Count Slider */}
           <div>
-            <Label htmlFor="mine-count" className="text-gray-300 text-sm sm:text-base font-medium">Number of Mines</Label>
-            <Select value={mineCount.toString()} onValueChange={(value) => setMineCount(Number(value))}>
-              <SelectTrigger className="bg-slate-700 border-slate-600 text-white mt-1 h-12 sm:h-10">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-slate-700 border-slate-600">
-                <SelectItem value="1">1 Mine (Very Safe - Slow Growth)</SelectItem>
-                <SelectItem value="3">3 Mines (Safe - Steady Growth)</SelectItem>
-                <SelectItem value="5">5 Mines (Medium Risk - Good Growth)</SelectItem>
-                <SelectItem value="8">8 Mines (High Risk - Fast Growth)</SelectItem>
-                <SelectItem value="10">10 Mines (Very High Risk - Extreme Growth)</SelectItem>
-                {gridSize === 8 && (
-                  <>
-                    <SelectItem value="15">15 Mines (Extreme Risk)</SelectItem>
-                    <SelectItem value="20">20 Mines (Maximum Risk)</SelectItem>
-                  </>
-                )}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-gray-400 mt-1">Max: {maxMines} mines</p>
+            <Label className="text-gray-300 text-sm sm:text-base font-medium">
+              Number of Mines: {mineCount}
+            </Label>
+            <div className="mt-2 mb-1">
+              <Slider
+                value={[mineCount]}
+                onValueChange={(value) => setMineCount(value[0])}
+                min={1}
+                max={Math.min(maxMines, 20)}
+                step={1}
+                className="w-full"
+              />
+            </div>
+            <div className="flex justify-between text-xs text-gray-400 mb-2">
+              <span>1 (Safest)</span>
+              <span>{Math.min(maxMines, 20)} (Riskiest)</span>
+            </div>
+            <p className="text-sm text-center p-2 bg-slate-700 rounded-lg border border-slate-600">
+              {getMineRiskDescription(mineCount)}
+            </p>
           </div>
           
           <Button 
             onClick={handleStartGame}
             className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 active:from-emerald-800 active:to-green-800 text-white font-bold py-4 sm:py-3 text-base sm:text-sm shadow-lg transition-all duration-200"
-            disabled={betAmount <= 0 || betAmount > gameData.balance || mineCount >= maxMines}
+            disabled={betAmount <= 0 || betAmount > gameData.balance}
           >
             🎮 Start Game
           </Button>

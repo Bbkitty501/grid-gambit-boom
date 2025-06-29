@@ -39,6 +39,7 @@ const MemeCoins = () => {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [newCoin, setNewCoin] = useState({
     name: "",
     symbol: "",
@@ -47,7 +48,7 @@ const MemeCoins = () => {
   });
 
   // Show loading while auth is loading
-  if (authLoading) {
+  if (authLoading || profileLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white flex items-center justify-center">
         <div className="text-center">
@@ -90,89 +91,165 @@ const MemeCoins = () => {
   useEffect(() => {
     if (!user) return;
 
-    // Load initial data
-    loadCoins();
-    loadChatMessages();
+    const initializeData = async () => {
+      try {
+        setIsLoading(true);
+        console.log('Loading meme coins data...');
+        
+        // Load initial data with error handling
+        await Promise.all([
+          loadCoins(),
+          loadChatMessages()
+        ]);
 
-    // Set up realtime subscriptions
-    const coinsChannel = supabase
-      .channel('meme-coins-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'meme_coins'
-      }, (payload) => {
-        console.log('Coins change received:', payload);
-        loadCoins();
-      })
-      .subscribe();
+        // Set up realtime subscriptions
+        const coinsChannel = supabase
+          .channel('meme-coins-changes')
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'meme_coins'
+          }, (payload) => {
+            console.log('Coins change received:', payload);
+            loadCoins();
+          })
+          .subscribe();
 
-    const chatChannel = supabase
-      .channel('chat-messages-changes')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'chat_messages'
-      }, (payload) => {
-        console.log('New chat message:', payload);
-        const newMessage = payload.new as ChatMessage;
-        setChatMessages(prev => [...prev, newMessage]);
-      })
-      .subscribe();
+        const chatChannel = supabase
+          .channel('chat-messages-changes')
+          .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'chat_messages'
+          }, (payload) => {
+            console.log('New chat message:', payload);
+            const newMessage = payload.new as ChatMessage;
+            setChatMessages(prev => [...prev, newMessage]);
+          })
+          .subscribe();
 
-    return () => {
-      supabase.removeChannel(coinsChannel);
-      supabase.removeChannel(chatChannel);
+        // Simulate price updates every 10 seconds
+        const priceUpdateInterval = setInterval(() => {
+          updateCoinPrices();
+        }, 10000);
+
+        setIsLoading(false);
+
+        return () => {
+          supabase.removeChannel(coinsChannel);
+          supabase.removeChannel(chatChannel);
+          clearInterval(priceUpdateInterval);
+        };
+      } catch (error) {
+        console.error('Error initializing meme coins data:', error);
+        setIsLoading(false);
+      }
     };
+
+    initializeData();
   }, [user]);
 
   const loadCoins = async () => {
-    const { data, error } = await supabase
-      .from('meme_coins')
-      .select('*')
-      .order('market_cap', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('meme_coins')
+        .select('*')
+        .order('market_cap', { ascending: false });
 
-    if (error) {
-      console.error('Error loading coins:', error);
-    } else {
-      setCoins(data || []);
+      if (error) {
+        console.error('Error loading coins:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load meme coins",
+          variant: "destructive",
+        });
+      } else {
+        console.log('Loaded coins:', data?.length || 0);
+        setCoins(data || []);
+      }
+    } catch (error) {
+      console.error('Error in loadCoins:', error);
     }
   };
 
   const loadChatMessages = async () => {
-    const { data, error } = await supabase
-      .from('chat_messages')
-      .select('*')
-      .order('created_at', { ascending: true })
-      .limit(50);
+    try {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .order('created_at', { ascending: true })
+        .limit(50);
 
-    if (error) {
-      console.error('Error loading chat messages:', error);
-    } else {
-      setChatMessages(data || []);
+      if (error) {
+        console.error('Error loading chat messages:', error);
+      } else {
+        console.log('Loaded chat messages:', data?.length || 0);
+        setChatMessages(data || []);
+      }
+    } catch (error) {
+      console.error('Error in loadChatMessages:', error);
+    }
+  };
+
+  const updateCoinPrices = async () => {
+    try {
+      // Get current coins
+      const { data: currentCoins, error: fetchError } = await supabase
+        .from('meme_coins')
+        .select('*');
+
+      if (fetchError) {
+        console.error('Error fetching coins for price update:', fetchError);
+        return;
+      }
+
+      // Update each coin with random price changes
+      for (const coin of currentCoins || []) {
+        const changePercent = (Math.random() - 0.5) * 20; // -10% to +10% change
+        const newPrice = Math.max(0.0001, coin.price * (1 + changePercent / 100));
+        const newMarketCap = Math.max(1000, coin.market_cap * (1 + changePercent / 100));
+
+        await supabase
+          .from('meme_coins')
+          .update({
+            price: newPrice,
+            change_24h: changePercent,
+            market_cap: newMarketCap,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', coin.id);
+      }
+
+      console.log('Updated coin prices');
+    } catch (error) {
+      console.error('Error updating coin prices:', error);
     }
   };
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !user) return;
 
-    const { error } = await supabase
-      .from('chat_messages')
-      .insert({
-        message: newMessage.trim(),
-        user_id: user.id,
-        username: user.email || 'Anonymous'
-      });
+    try {
+      const { error } = await supabase
+        .from('chat_messages')
+        .insert({
+          message: newMessage.trim(),
+          user_id: user.id,
+          username: user.email || 'Anonymous'
+        });
 
-    if (error) {
-      console.error('Error sending message:', error);
-      toast({
-        title: "Error",
-        description: "Failed to send message",
-        variant: "destructive",
-      });
-    } else {
-      setNewMessage("");
+      if (error) {
+        console.error('Error sending message:', error);
+        toast({
+          title: "Error",
+          description: "Failed to send message",
+          variant: "destructive",
+        });
+      } else {
+        setNewMessage("");
+      }
+    } catch (error) {
+      console.error('Error in sendMessage:', error);
     }
   };
 
@@ -188,36 +265,53 @@ const MemeCoins = () => {
       return;
     }
 
-    const { error } = await supabase
-      .from('meme_coins')
-      .insert({
-        name: newCoin.name,
-        symbol: newCoin.symbol.toUpperCase(),
-        emoji: newCoin.emoji,
-        description: newCoin.description || null,
-        creator_id: user.id,
-        creator_name: user.email || 'Anonymous',
-        price: 0.01,
-        market_cap: 1000,
-        change_24h: 0
-      });
+    try {
+      const { error } = await supabase
+        .from('meme_coins')
+        .insert({
+          name: newCoin.name,
+          symbol: newCoin.symbol.toUpperCase(),
+          emoji: newCoin.emoji,
+          description: newCoin.description || null,
+          creator_id: user.id,
+          creator_name: user.email || 'Anonymous',
+          price: 0.01,
+          market_cap: 1000,
+          change_24h: 0
+        });
 
-    if (error) {
-      console.error('Error creating coin:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create meme coin",
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Success",
-        description: "Meme coin created successfully!",
-      });
-      setNewCoin({ name: "", symbol: "", emoji: "", description: "" });
-      setShowCreateForm(false);
+      if (error) {
+        console.error('Error creating coin:', error);
+        toast({
+          title: "Error",
+          description: "Failed to create meme coin",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Meme coin created successfully!",
+        });
+        setNewCoin({ name: "", symbol: "", emoji: "", description: "" });
+        setShowCreateForm(false);
+      }
+    } catch (error) {
+      console.error('Error in createCoin:', error);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+            MEME COINS
+          </h1>
+          <p className="text-gray-400">Loading market data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white">
@@ -300,41 +394,49 @@ const MemeCoins = () => {
               </Card>
             )}
 
-            {coins.map((coin) => (
-              <Card key={coin.id} className="bg-slate-800 border-slate-700 hover:bg-slate-750 transition-colors">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <span className="text-3xl">{coin.emoji}</span>
-                      <div>
-                        <h3 className="text-xl font-bold text-white">{coin.name}</h3>
-                        <p className="text-gray-400">{coin.symbol}</p>
-                        <p className="text-sm text-gray-500">by {coin.creator_name}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-white">${coin.price.toFixed(4)}</p>
-                      <div className="flex items-center space-x-2">
-                        {coin.change_24h >= 0 ? (
-                          <TrendingUp className="w-4 h-4 text-green-400" />
-                        ) : (
-                          <TrendingDown className="w-4 h-4 text-red-400" />
-                        )}
-                        <span className={coin.change_24h >= 0 ? 'text-green-400' : 'text-red-400'}>
-                          {coin.change_24h.toFixed(2)}%
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-400">
-                        Cap: ${coin.market_cap.toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                  {coin.description && (
-                    <p className="mt-3 text-gray-300 text-sm">{coin.description}</p>
-                  )}
+            {coins.length === 0 ? (
+              <Card className="bg-slate-800 border-slate-700">
+                <CardContent className="p-8 text-center">
+                  <p className="text-gray-400">No meme coins available yet. Create the first one!</p>
                 </CardContent>
               </Card>
-            ))}
+            ) : (
+              coins.map((coin) => (
+                <Card key={coin.id} className="bg-slate-800 border-slate-700 hover:bg-slate-750 transition-colors">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <span className="text-3xl">{coin.emoji}</span>
+                        <div>
+                          <h3 className="text-xl font-bold text-white">{coin.name}</h3>
+                          <p className="text-gray-400">{coin.symbol}</p>
+                          <p className="text-sm text-gray-500">by {coin.creator_name}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-white">${coin.price.toFixed(4)}</p>
+                        <div className="flex items-center space-x-2">
+                          {coin.change_24h >= 0 ? (
+                            <TrendingUp className="w-4 h-4 text-green-400" />
+                          ) : (
+                            <TrendingDown className="w-4 h-4 text-red-400" />
+                          )}
+                          <span className={coin.change_24h >= 0 ? 'text-green-400' : 'text-red-400'}>
+                            {coin.change_24h.toFixed(2)}%
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-400">
+                          Cap: ${coin.market_cap.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    {coin.description && (
+                      <p className="mt-3 text-gray-300 text-sm">{coin.description}</p>
+                    )}
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
 
           {/* Live Chat */}
@@ -348,12 +450,16 @@ const MemeCoins = () => {
               </CardHeader>
               <CardContent className="flex-1 flex flex-col p-4">
                 <div className="flex-1 overflow-y-auto space-y-2 mb-4">
-                  {chatMessages.map((msg) => (
-                    <div key={msg.id} className="text-sm">
-                      <span className="font-semibold text-yellow-400">{msg.username}:</span>
-                      <span className="text-gray-300 ml-2">{msg.message}</span>
-                    </div>
-                  ))}
+                  {chatMessages.length === 0 ? (
+                    <p className="text-gray-400 text-sm">No messages yet. Start the conversation!</p>
+                  ) : (
+                    chatMessages.map((msg) => (
+                      <div key={msg.id} className="text-sm">
+                        <span className="font-semibold text-yellow-400">{msg.username}:</span>
+                        <span className="text-gray-300 ml-2">{msg.message}</span>
+                      </div>
+                    ))
+                  )}
                 </div>
                 <div className="flex space-x-2">
                   <Input
