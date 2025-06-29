@@ -35,7 +35,7 @@ const Settings = () => {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <p className="text-white font-medium mb-1">
-                    Username: {profile?.username || 'Loading...'}
+                    Email: {user?.email || 'Loading...'}
                   </p>
                   <p className="text-gray-400 text-sm">Signed in as: {user?.email}</p>
                 </div>

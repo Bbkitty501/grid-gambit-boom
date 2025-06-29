@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -31,7 +32,7 @@ interface ChatMessage {
 const MemeCoins = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { profile, loading: profileLoading } = useProfile();
+  const { profile, loading: profileLoading, containsSwearWords } = useProfile();
   const { toast } = useToast();
   
   const [coins, setCoins] = useState<MemeCoin[]>([]);
@@ -45,8 +46,8 @@ const MemeCoins = () => {
     description: ""
   });
 
-  // Show loading while auth or profile is loading
-  if (authLoading || profileLoading) {
+  // Show loading while auth is loading
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white flex items-center justify-center">
         <div className="text-center">
@@ -59,28 +60,35 @@ const MemeCoins = () => {
     );
   }
 
-  // Redirect to auth if not authenticated, but don't render anything yet
+  // Redirect to auth if not authenticated
   if (!user) {
     navigate("/auth");
     return null;
   }
 
-  // Wait for profile to load before showing the page
-  if (!profile) {
+  // Check for swear words in email
+  if (user.email && containsSwearWords(user.email)) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
-            MEME COINS
+          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-red-400 to-red-600 bg-clip-text text-transparent">
+            ACCESS DENIED
           </h1>
-          <p className="text-gray-400">Setting up your profile...</p>
+          <p className="text-gray-400 mb-4">Your email contains inappropriate content.</p>
+          <p className="text-gray-400 mb-8">Please create a new account with a different email address.</p>
+          <Button
+            onClick={() => navigate("/auth")}
+            className="bg-red-600 hover:bg-red-700"
+          >
+            Back to Login
+          </Button>
         </div>
       </div>
     );
   }
 
   useEffect(() => {
-    if (!user || !profile) return;
+    if (!user) return;
 
     // Load initial data
     loadCoins();
@@ -95,7 +103,7 @@ const MemeCoins = () => {
         table: 'meme_coins'
       }, (payload) => {
         console.log('Coins change received:', payload);
-        loadCoins(); // Reload coins when changes occur
+        loadCoins();
       })
       .subscribe();
 
@@ -116,7 +124,7 @@ const MemeCoins = () => {
       supabase.removeChannel(coinsChannel);
       supabase.removeChannel(chatChannel);
     };
-  }, [user, profile]);
+  }, [user]);
 
   const loadCoins = async () => {
     const { data, error } = await supabase
@@ -146,14 +154,14 @@ const MemeCoins = () => {
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !user || !profile) return;
+    if (!newMessage.trim() || !user) return;
 
     const { error } = await supabase
       .from('chat_messages')
       .insert({
         message: newMessage.trim(),
         user_id: user.id,
-        username: profile.username
+        username: user.email || 'Anonymous'
       });
 
     if (error) {
@@ -169,7 +177,7 @@ const MemeCoins = () => {
   };
 
   const createCoin = async () => {
-    if (!user || !profile) return;
+    if (!user) return;
     
     if (!newCoin.name || !newCoin.symbol || !newCoin.emoji) {
       toast({
@@ -188,7 +196,7 @@ const MemeCoins = () => {
         emoji: newCoin.emoji,
         description: newCoin.description || null,
         creator_id: user.id,
-        creator_name: profile.username,
+        creator_name: user.email || 'Anonymous',
         price: 0.01,
         market_cap: 1000,
         change_24h: 0
@@ -229,7 +237,7 @@ const MemeCoins = () => {
           </h1>
           <div className="ml-auto">
             <span className="text-sm text-gray-400 mr-4">
-              Trading as: {profile.username}
+              Trading as: {user.email}
             </span>
             <Button
               onClick={() => setShowCreateForm(!showCreateForm)}

@@ -111,27 +111,6 @@ export type Database = {
         }
         Relationships: []
       }
-      profiles: {
-        Row: {
-          created_at: string
-          id: string
-          updated_at: string
-          username: string
-        }
-        Insert: {
-          created_at?: string
-          id: string
-          updated_at?: string
-          username: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          updated_at?: string
-          username?: string
-        }
-        Relationships: []
-      }
       user_game_data: {
         Row: {
           balance: number
@@ -196,10 +175,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      generate_random_username: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
